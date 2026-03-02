@@ -2,6 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import { FixedCharge, EnergyBand } from '../types';
 import { formatCurrency, formatNumber } from '../services/calculatorService';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface Props {
   onBack: () => void;
@@ -37,12 +39,12 @@ const NotProsumerIndustrialFlow: React.FC<Props> = ({ onBack }) => {
 
   // VARIABLES ESPECÍFICAS PARA USUARIO INDUSTRIAL
   const Autoconsumo_estimado = 0.90;
-  const TARIFA_GSF = 34.93;
+  const TARIFA_GSF = 39.2;
 
   const [formData, setFormData] = useState<LocalFormData>({
-    knowsPower: null,
+    knowsPower: 'no',
     contractedPower: "",
-    knowsAverage: null,
+    knowsAverage: 'no',
     averageConsumption: "",
     monthlyTable: Array(12).fill(0),
     currentMonthConsumption: "",
@@ -124,7 +126,7 @@ const NotProsumerIndustrialFlow: React.FC<Props> = ({ onBack }) => {
 
     // VARIABLE: kWh de última banda, SIN
     // kWhUltimaBandaSin = TOTAL - Última banda
-    const kwhUltimaBandaSin = Math.max(0.0001, TOTAL - ultimaBandaKwhValue);
+    const kwhUltimaBandaSin = Math.max(0.0001, currentCons - ultimaBandaKwhValue);
     
     const precioUltimaBanda = safeDiv(parse(lastBand?.amount), kwhUltimaBandaSin);
 
@@ -192,6 +194,48 @@ const NotProsumerIndustrialFlow: React.FC<Props> = ({ onBack }) => {
     setFormData(prev => ({ ...prev, [list]: prev[list].filter((item: any) => item.id !== id) }));
   };
 
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById('results-content');
+    if (!element) return;
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save('resultados-industrial.pdf');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Hubo un error al generar el PDF. Por favor intente nuevamente.');
+    }
+  };
+
   const inputClass = "w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-600 outline-none transition-all bg-white shadow-sm";
   const labelClass = "block text-sm font-bold text-slate-700 mb-1 uppercase tracking-tight";
   const sectionClass = "bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6";
@@ -203,13 +247,24 @@ const NotProsumerIndustrialFlow: React.FC<Props> = ({ onBack }) => {
     const pRec = (results.ahorroReconocimientos / totalAhorroVal) * 100;
 
     return (
-      <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto pb-20">
+      <div id="results-content" className="space-y-8 animate-fadeIn max-w-4xl mx-auto pb-20">
         <div className="flex items-center justify-between">
           <button onClick={() => setShowResults(false)} className="text-slate-500 hover:text-slate-800 flex items-center font-bold">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             Editar Datos
           </button>
-          <h2 className="text-2xl font-black text-slate-800 uppercase italic">Resultados Industriales</h2>
+          <div className="flex items-center gap-4">
+            <button onClick={handleDownloadPDF} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Guardar PDF
+            </button>
+            <h2 className="text-2xl font-black text-slate-800 uppercase italic">Resultados Industriales</h2>
+          </div>
+        </div>
+
+        <div className="text-center bg-orange-50 p-4 rounded-2xl border border-orange-100">
+          <p className="text-xs font-black text-orange-800 uppercase tracking-widest">Potencia maxima de instalacion</p>
+          <p className="text-2xl font-black text-orange-600">{results.maxPower.toFixed(2)} kW</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -217,7 +272,7 @@ const NotProsumerIndustrialFlow: React.FC<Props> = ({ onBack }) => {
             <p className="text-slate-400 text-[10px] font-black uppercase mb-1 tracking-widest">Factura Sin Programa</p>
             <p className="text-3xl font-bold text-slate-800">{formatCurrency(results.totalToPaySin)}</p>
           </div>
-          <div className="bg-orange-600 p-6 rounded-3xl border border-orange-700 shadow-xl text-center text-white">
+          <div className="bg-gradient-to-r from-[#FF5F6D] to-[#B83AF3] p-6 rounded-3xl shadow-xl text-center text-white">
             <p className="text-orange-100 text-[10px] font-black uppercase mb-1 tracking-widest">Factura Con Prosumidores 4.0</p>
             <p className="text-3xl font-bold">{formatCurrency(results.totalFacturaCon)}</p>
           </div>
@@ -264,12 +319,12 @@ const NotProsumerIndustrialFlow: React.FC<Props> = ({ onBack }) => {
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 italic">Eficiencia Energética</h3>
             <div className="space-y-4">
               <div>
-                <p className="flex justify-between text-[10px] font-bold mb-1 uppercase"><span>Energía Autoconsumida / Generada</span> <span>{Math.round(safeDiv(results.autoconsumoKwh, results.EG) * 100)}%</span></p>
+                <p className="flex justify-between text-[10px] font-bold mb-1 uppercase"><span>Porcentaje de autoconsumo</span> <span>{Math.round(safeDiv(results.autoconsumoKwh, results.EG) * 100)}%</span></p>
                 <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div className="bg-orange-600 h-full" style={{width: `${safeDiv(results.autoconsumoKwh, results.EG) * 100}%`}}></div></div>
               </div>
               <div>
-                <p className="flex justify-between text-[10px] font-bold mb-1 uppercase"><span>Energía recibida / generada</span> <span>{Math.round(safeDiv(results.ER, results.EG) * 100)}%</span></p>
-                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div className="bg-blue-500 h-full" style={{width: `${safeDiv(results.ER, results.EG) * 100}%`}}></div></div>
+                <p className="flex justify-between text-[10px] font-bold mb-1 uppercase"><span>Porcentaje de generación con respecto al consumo</span> <span>{Math.round(safeDiv(results.EG, (results.EG + results.EE - results.ER)) * 100)}%</span></p>
+                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div className="bg-blue-500 h-full" style={{width: `${safeDiv(results.EG, (results.EG + results.EE - results.ER)) * 100}%`}}></div></div>
               </div>
             </div>
           </div>
@@ -277,45 +332,13 @@ const NotProsumerIndustrialFlow: React.FC<Props> = ({ onBack }) => {
             <h3 className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em] mb-4 italic">Impacto Ambiental Positivo</h3>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div><p className="text-slate-500 text-[8px] font-black uppercase mb-1">Generada</p><p className="text-xl font-bold">{results.EG} <span className="text-[10px] font-normal text-slate-400">kWh</span></p></div>
-              <div><p className="text-slate-500 text-[8px] font-black uppercase mb-1">CO2 Evitado</p><p className="text-xl font-bold text-orange-400">{(results.EG * 0.041).toFixed(2)} <span className="text-[10px] font-normal text-slate-400">kg</span></p></div>
-              <div><p className="text-slate-500 text-[8px] font-black uppercase mb-1">Árboles eq.</p><p className="text-xl font-bold text-emerald-400">{Math.ceil((results.EG * 0.041) / (10/12))}</p></div>
+              <div><p className="text-slate-500 text-[8px] font-black uppercase mb-1">CO2 Evitado</p><p className="text-xl font-bold text-orange-400">{(results.EG * 0.2306).toFixed(2)} <span className="text-[10px] font-normal text-slate-400">kg</span></p></div>
+              <div><p className="text-slate-500 text-[8px] font-black uppercase mb-1">Árboles eq.</p><p className="text-xl font-bold text-emerald-400">{Math.ceil((results.EG * 0.2306) / (10/12))}</p></div>
             </div>
           </div>
         </div>
 
-        <div className="border border-slate-200 rounded-3xl overflow-hidden bg-white shadow-sm">
-          <button onClick={() => setShowAux(!showAux)} className="w-full p-6 flex items-center justify-between font-black text-slate-700 hover:bg-slate-50 uppercase tracking-widest text-xs italic">
-            <span>MOSTRAR TODOS LOS CÁLCULOS (VARIABLES INTERNAS)</span>
-            <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-transform ${showAux ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-          </button>
-          {showAux && (
-            <div className="p-8 border-t bg-slate-50 space-y-4 text-[11px] font-mono text-slate-600 leading-relaxed text-left">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
-                <div className="flex justify-between border-b pb-1"><span>TOTAL [kWh]:</span> <span className="font-bold text-slate-900">{results.TOTAL.toFixed(2)}</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Potencia Máxima Instalable:</span> <span className="font-bold text-slate-900">{results.maxPower.toFixed(2)} kW</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Energía Generada (EG):</span> <span className="font-bold text-slate-900">{results.EG}</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Energía Recibida (ER):</span> <span className="font-bold text-slate-900">{results.ER.toFixed(2)}</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Autoconsumo [kWh]:</span> <span className="font-bold text-slate-900">{results.autoconsumoKwh.toFixed(2)}</span></div>
-                <div className="flex justify-between border-b pb-1 bg-yellow-50 p-1 rounded"><span>Última banda (ref. anterior):</span> <span className="font-bold text-slate-900">{results.ultimaBandaKwhValue.toFixed(2)} kWh</span></div>
-                <div className="flex justify-between border-b pb-1 bg-yellow-50 p-1 rounded"><span>kWh de última banda, SIN (TOTAL - Últ.Banda):</span> <span className="font-bold text-slate-900">{results.kwhUltimaBandaSin.toFixed(2)} kWh</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Precio unitario última banda ($/kWh):</span> <span className="font-bold text-slate-900">{results.precioUltimaBanda.toFixed(4)}</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Subtotal Energía Eléc. Con:</span> <span className="font-bold text-slate-900">{formatCurrency(results.subtotalEnergyCon)}</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Subtotal Impuestos con:</span> <span className="font-bold text-slate-900">{formatCurrency(results.subtotalTaxesCon)}</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Reconocimiento GSF (34,93 * ER):</span> <span className="font-bold text-slate-900">{formatCurrency(results.reconGSF)}</span></div>
-                <div className="flex justify-between border-b pb-1 bg-orange-50 p-1 rounded"><span>Total Energía, con (Suma - Recon.):</span> <span className="font-bold text-orange-700">{formatCurrency(results.totalEnergiaCon)}</span></div>
-                <div className="flex justify-between border-b pb-1"><span>TOTAL FACTURA (Con Percepciones):</span> <span className="font-bold text-slate-900">{formatCurrency(results.totalFacturaCon)}</span></div>
-              </div>
-              
-              <div className="mt-4 p-4 bg-slate-100 rounded-xl space-y-2 italic text-slate-400">
-                <p>• kWh de última banda, SIN = TOTAL - ultimaBandaKwh</p>
-                <p>• Total Energía, con = Subtotal Energía Con + Subtotal Impuestos con - Reconocimiento GSF</p>
-                <p>• Subtotal Impuestos con = Subtotal Impuestos sin - (Subtotal Energía sin - Subtotal Energía Con) * IVA</p>
-                <p>• Energía Recibida (ER) = Generación promedio * (1 - Autoconsumo_estimado)</p>
-                <p className="text-[9px] border-t pt-2 italic">Tener en cuenta que esta fórmula solo aplica si la diferencia de impuestos entre SIN Pros. y CON Pros. está en el IVA aplicado al subtotal de energía.</p>
-              </div>
-            </div>
-          )}
-        </div>
+
       </div>
     );
   }
@@ -327,7 +350,7 @@ const NotProsumerIndustrialFlow: React.FC<Props> = ({ onBack }) => {
         Volver
       </button>
 
-      <div className="bg-orange-600 p-6 rounded-3xl text-white flex items-center justify-between shadow-xl">
+      <div className="bg-gradient-to-r from-[#FF5F6D] to-[#B83AF3] p-6 rounded-3xl text-white flex items-center justify-between shadow-xl">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.691.31a2 2 0 01-1.782 0l-.691-.31a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547l-1.091 1.091a2 2 0 000 2.828l1.091 1.091a2 2 0 001.022.547l2.387.477a6 6 0 003.86-.517l.691-.31a2 2 0 011.782 0l.691.31a6 6 0 003.86.517l2.387-.477a2 2 0 001.022-.547l1.091-1.091a2 2 0 000-2.828l-1.091-1.091z" /></svg>
@@ -344,112 +367,33 @@ const NotProsumerIndustrialFlow: React.FC<Props> = ({ onBack }) => {
         <h3 className="text-lg font-black text-orange-600 border-b pb-2 mb-4 italic uppercase tracking-tighter">HISTORIA DE CONSUMO DE ENERGÍA</h3>
         
         <div className="space-y-8">
-          <div>
-            <label className={labelClass}>¿Conoce su potencia contratada? *</label>
-            <div className="flex gap-8 mt-4">
-              <label className="flex items-center space-x-3 cursor-pointer group">
-                <input 
-                  type="radio" 
-                  name="knowsPower" 
-                  className="w-5 h-5 accent-orange-600 cursor-pointer" 
-                  checked={formData.knowsPower === 'si'} 
-                  onChange={() => handleInputChange('knowsPower', 'si')} 
-                />
-                <span className="text-sm font-bold text-slate-600 group-hover:text-orange-600 transition-colors uppercase italic">Sí</span>
-              </label>
-              <label className="flex items-center space-x-3 cursor-pointer group">
-                <input 
-                  type="radio" 
-                  name="knowsPower" 
-                  className="w-5 h-5 accent-orange-600 cursor-pointer" 
-                  checked={formData.knowsPower === 'no'} 
-                  onChange={() => handleInputChange('knowsPower', 'no')} 
-                />
-                <span className="text-sm font-bold text-slate-600 group-hover:text-orange-600 transition-colors uppercase italic">No</span>
-              </label>
-            </div>
+          <div className="animate-fadeIn overflow-hidden rounded-3xl border border-slate-100 shadow-sm">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50"><tr><th className="p-4 text-left font-black text-slate-400 uppercase tracking-widest">Mes</th><th className="p-4 text-left font-black text-slate-400 uppercase tracking-widest">Consumo [kWh]</th></tr></thead>
+              <tbody className="bg-white">
+                {formData.monthlyTable.map((val, idx) => (
+                  <tr key={idx} className="border-t border-slate-50">
+                    <td className="p-4 font-black text-slate-500">{idx + 1}</td>
+                    <td className="p-2">
+                      <input 
+                        type="number" 
+                        className="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none" 
+                        value={val === 0 ? "" : val} 
+                        onChange={(e) => { 
+                          const nt = [...formData.monthlyTable]; 
+                          nt[idx] = e.target.value === "" ? 0 : parseFloat(e.target.value); 
+                          setFormData(p => ({ ...p, monthlyTable: nt })); 
+                        }} 
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          {formData.knowsPower === 'si' && (
-            <div className="animate-fadeIn">
-              <label className={labelClass}>Potencia contratada [kW]</label>
-              <input 
-                type="number" 
-                step="any" 
-                className={inputClass} 
-                value={formData.contractedPower} 
-                onChange={(e) => handleInputChange('contractedPower', e.target.value)} 
-                placeholder="Ej: 3.3" 
-              />
-              <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase italic border-l-2 border-orange-200 pl-3">
-                Este valor será utilizado directamente como la estimación de potencia máxima que podés instalar (kW).
-              </p>
-            </div>
-          )}
-
-          {formData.knowsPower === 'no' && (
-            <div className="animate-fadeIn space-y-8">
-              <div>
-                <label className={labelClass}>¿Conoce su consumo mensual promedio? *</label>
-                <div className="flex gap-8 mt-4">
-                  <label className="flex items-center space-x-3 cursor-pointer group">
-                    <input 
-                      type="radio" 
-                      name="knowsAverage" 
-                      className="w-5 h-5 accent-orange-600" 
-                      checked={formData.knowsAverage === 'si'} 
-                      onChange={() => handleInputChange('knowsAverage', 'si')} 
-                    />
-                    <span className="text-sm font-bold text-slate-600 uppercase italic">Sí</span>
-                  </label>
-                  <label className="flex items-center space-x-3 cursor-pointer group">
-                    <input 
-                      type="radio" 
-                      name="knowsAverage" 
-                      className="w-5 h-5 accent-orange-600" 
-                      checked={formData.knowsAverage === 'no'} 
-                      onChange={() => handleInputChange('knowsAverage', 'no')} 
-                    />
-                    <span className="text-sm font-bold text-slate-600 uppercase italic">No</span>
-                  </label>
-                </div>
-              </div>
-
-              {formData.knowsAverage === 'si' && (
-                <div className="animate-fadeIn">
-                  <label className={labelClass}>Consumo promedio [kWh]</label>
-                  <input type="number" step="any" className={inputClass} value={formData.averageConsumption} onChange={(e) => handleInputChange('averageConsumption', e.target.value)} />
-                </div>
-              )}
-
-              {formData.knowsAverage === 'no' && (
-                <div className="animate-fadeIn overflow-hidden rounded-3xl border border-slate-100 shadow-sm">
-                  <table className="w-full text-xs">
-                    <thead className="bg-slate-50"><tr><th className="p-4 text-left font-black text-slate-400 uppercase tracking-widest">Mes</th><th className="p-4 text-left font-black text-slate-400 uppercase tracking-widest">Consumo [kWh]</th></tr></thead>
-                    <tbody className="bg-white">
-                      {formData.monthlyTable.map((val, idx) => (
-                        <tr key={idx} className="border-t border-slate-50">
-                          <td className="p-4 font-black text-slate-500">{idx + 1}</td>
-                          <td className="p-2">
-                            <input 
-                              type="number" 
-                              className="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none" 
-                              value={val === 0 ? "" : val} 
-                              onChange={(e) => { 
-                                const nt = [...formData.monthlyTable]; 
-                                nt[idx] = e.target.value === "" ? 0 : parseFloat(e.target.value); 
-                                setFormData(p => ({ ...p, monthlyTable: nt })); 
-                              }} 
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
+          <p className="text-[10px] text-slate-400 italic leading-relaxed border-l-4 border-orange-200 pl-4 py-1">
+            Si tu factura tiene consumos bimestrales, completa las primeras 6 casillas con dichos valores y deja vacías las demás.
+          </p>
 
           {(formData.knowsPower !== null) && (
             <div className="pt-6 border-t border-slate-100 animate-fadeIn">
@@ -504,6 +448,9 @@ const NotProsumerIndustrialFlow: React.FC<Props> = ({ onBack }) => {
               </div>
             ))}
             <button onClick={() => addItem('energyBands')} className="text-orange-600 font-black text-xs uppercase tracking-widest">+ Agregar Banda</button>
+            <p className="text-[10px] text-slate-400 italic leading-relaxed border-l-4 border-orange-200 pl-4 py-1">
+              Si tu factura muestra un rango de valores en la Banda de energía, ingresá el valor máximo del rango. Si aparece un único número, ingresá ese mismo valor.
+            </p>
           </div>
 
           <div className="pt-8 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-8">

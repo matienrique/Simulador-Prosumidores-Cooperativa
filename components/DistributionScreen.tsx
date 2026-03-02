@@ -12,7 +12,7 @@ const DistributionScreen: React.FC<Props> = ({ onSelect }) => {
       <div className="text-center space-y-4">
         <h2 className="text-4xl font-extrabold text-slate-800 tracking-tight">Bienvenido</h2>
         <p className="text-slate-500 text-lg max-w-xl">
-          Para comenzar, identifique su entidad distribuidora de energía eléctrica.
+          Mediante el siguiente simulador podrás estimar los ahorros económicos en tu factura eléctrica o calcular qué potencia de energía renovable podés instalar por formar parte del Programa Prosumidores 4.0
         </p>
       </div>
 

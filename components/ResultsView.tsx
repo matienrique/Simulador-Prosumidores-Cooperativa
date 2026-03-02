@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { CalculationResults, FormData } from '../types';
 import { formatCurrency, formatNumber } from '../services/calculatorService';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface Props {
   results: CalculationResults;
@@ -17,11 +19,57 @@ const ResultsView: React.FC<Props> = ({ results, formData, onRestart, onBack }) 
   const cardClass = "bg-white p-6 rounded-2xl border border-slate-200 shadow-sm";
   const labelClass = "text-sm text-slate-500 font-medium";
 
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById('results-content');
+    if (!element) return;
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save('resultados-calculo.pdf');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Hubo un error al generar el PDF. Por favor intente nuevamente.');
+    }
+  };
+
   return (
-    <div className="space-y-8 animate-fadeIn pb-12">
+    <div id="results-content" className="space-y-8 animate-fadeIn pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h2 className="text-3xl font-bold text-slate-800">Resultados del Cálculo</h2>
         <div className="flex items-center gap-4">
+          <button onClick={handleDownloadPDF} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            Guardar PDF
+          </button>
           <button 
             onClick={onBack}
             className="text-slate-500 hover:text-slate-800 flex items-center font-semibold transition-colors"
@@ -53,9 +101,9 @@ const ResultsView: React.FC<Props> = ({ results, formData, onRestart, onBack }) 
           <p className={labelClass}>Factura sin Prosumidores 4.0</p>
           <p className="text-2xl font-bold text-slate-800">{formatCurrency(results.totalAPagarSin)}</p>
         </div>
-        <div className={`${cardClass} bg-green-50 border-green-200`}>
-          <p className="text-sm text-green-700 font-bold uppercase tracking-wider">Ahorro Mensual</p>
-          <p className="text-3xl font-extrabold text-green-600">{formatCurrency(results.ahorroTotal)}</p>
+        <div className={`${cardClass} bg-gradient-to-r from-[#FF5F6D] to-[#B83AF3] text-white shadow-lg`}>
+          <p className="text-sm text-white/80 font-bold uppercase tracking-wider">Ahorro Mensual</p>
+          <p className="text-3xl font-extrabold text-white">{formatCurrency(results.ahorroTotal)}</p>
         </div>
       </div>
 
@@ -142,88 +190,7 @@ const ResultsView: React.FC<Props> = ({ results, formData, onRestart, onBack }) 
         </div>
       </div>
 
-      {/* Auxiliary Calculations */}
-      <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
-        <button 
-          onClick={() => setShowAux(!showAux)}
-          className="w-full p-4 flex items-center justify-between font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-        >
-          <span>CÁLCULOS AUXILIARES</span>
-          <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-300 ${showAux ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        {showAux && (
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-12 border-t text-sm bg-slate-50">
-            <div className="flex justify-between border-b border-slate-200 pb-1">
-              <span className="text-slate-500 italic">kWh de última banda con:</span>
-              <span className="font-mono font-semibold">{formatNumber(results.kWhUltimaBandaCon)} kWh</span>
-            </div>
-            <div className="flex justify-between border-b border-slate-200 pb-1">
-              <span className="text-slate-500 italic">kWh de última banda sin:</span>
-              <span className="font-mono font-semibold">{formatNumber(results.kWhUltimaBandaSin)} kWh</span>
-            </div>
-            <div className="flex justify-between border-b border-slate-200 pb-1">
-              <span className="text-slate-500 italic">Prop. Impuestos / Total Coop Con:</span>
-              <span className="font-mono font-semibold">{formatNumber(results.proporcionImpuestosTotalCon * 100)} %</span>
-            </div>
-            <div className="flex justify-between border-b border-slate-200 pb-1">
-              <span className="text-slate-500 italic">Autoconsumo:</span>
-              <span className="font-mono font-semibold">{formatNumber(results.autoconsumo)} kWh</span>
-            </div>
-            <div className="flex justify-between border-b border-slate-200 pb-1">
-              <span className="text-slate-500 italic">Subtotal Energía Eléc. Coop,Sin:</span>
-              <span className="font-mono font-semibold">{formatCurrency(results.subtotalEnergySin)}</span>
-            </div>
-            <div className="flex justify-between border-b border-slate-200 pb-1">
-              <span className="text-slate-500 italic">Factura sin Prosumidores 4.0:</span>
-              <span className="font-mono font-semibold">{formatCurrency(results.totalAPagarSin)}</span>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Full Calculation Log */}
-      <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
-        <button 
-          onClick={() => setShowFullLog(!showFullLog)}
-          className="w-full p-4 flex items-center justify-between font-bold text-slate-500 hover:bg-slate-50 transition-colors"
-        >
-          <span>Ver todos los cálculos (Variables Internas)</span>
-          <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-300 ${showFullLog ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        {showFullLog && (
-          <div className="p-6 border-t bg-slate-900 text-green-400 font-mono text-xs overflow-x-auto">
-            <pre className="whitespace-pre-wrap space-y-2">
-{`// CONFIGURACIÓN DE ENTRADA
-- Tipo Usuario: ${formData.userType}
-- Prop. Impuestos/Total Sin Pros (Ref): ${results.propSinPros.toFixed(4)}
-
-// VALORES DE CONSUMO
-- Energía Generada (X): ${formData.energyGenerated} kWh
-- Energía Inyectada (I): ${formData.energyInjected} kWh
-- Energía Entregada (C): ${formData.energyDelivered} kWh
-
-// VARIABLES INTERMEDIAS
-- Autoconsumo (X - I): ${results.autoconsumo.toFixed(2)} kWh
-- kWh de última banda con: ${results.kWhUltimaBandaCon.toFixed(2)} kWh
-- kWh de última banda sin: ${results.kWhUltimaBandaSin.toFixed(2)} kWh
-- Prop. Impuestos Total Con: ${results.proporcionImpuestosTotalCon.toFixed(4)}
-
-// RESULTADOS FINALES
-- Subtotal Energía Sin: ${results.subtotalEnergySin.toFixed(4)}
-- Factura sin Prosumidores 4.0: ${results.totalAPagarSin.toFixed(4)}
-- Factura con Prosumidores 4.0: ${parseVal(formData.totalToPay).toFixed(4)}
-- Ahorro Total: ${results.ahorroTotal.toFixed(4)}
-- Ahorro Autoconsumo: ${results.ahorroAutoconsumo.toFixed(4)}
-- Ahorro Impuestos: ${results.ahorroImpuestos.toFixed(4)}
-- Ahorro Reconocimientos: ${results.ahorroReconocimientos.toFixed(4)}`}
-            </pre>
-          </div>
-        )}
-      </div>
 
       <div className="text-center pt-6">
         <p className="text-slate-400 text-xs italic">Los valores presentados son estimaciones basadas en los parámetros de la Cooperativa Eléctrica y el Programa Prosumidores 4.0 de la provincia de Santa Fe.</p>

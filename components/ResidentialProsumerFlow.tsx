@@ -2,6 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import { FixedCharge, EnergyBand, UserType } from '../types';
 import { formatCurrency, formatNumber } from '../services/calculatorService';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface Props {
   onBack: () => void;
@@ -70,7 +72,7 @@ const ResidentialProsumerFlow: React.FC<Props> = ({ onBack }) => {
 
     const subtotalEnergySin = sumaCargosFijos + sumaImportesHastaPenultima + (precioUltimaBanda * kwhUltimaBandaSin);
     
-    const taxFactor = 1 - (propImpCon - PROP_IMP_SIN_PROS);
+    const taxFactor = 1 - (propImpCon);
     const totalAPagarSin = safeDiv(subtotalEnergySin, taxFactor);
 
     const ahorroTotal = totalAPagarSin - totalToPay;
@@ -79,7 +81,7 @@ const ResidentialProsumerFlow: React.FC<Props> = ({ onBack }) => {
     const ahorroReconocimientos = recon;
 
     const eficienciaAuto = safeDiv(autoconsumo, X) * 100;
-    const eficienciaIny = safeDiv(I, X) * 100;
+    const eficienciaGenConsumo = safeDiv(X, (X + C - I)) * 100;
 
     return {
       autoconsumo,
@@ -93,7 +95,7 @@ const ResidentialProsumerFlow: React.FC<Props> = ({ onBack }) => {
       ahorroImpuestos,
       ahorroReconocimientos,
       eficienciaAuto,
-      eficienciaIny,
+      eficienciaGenConsumo,
       X, I, C, totalToPay, subtotalImp, subtotalEnergy, recon,
       penultimaBandaKwh, sumaImportesHastaPenultima, sumaCargosFijos
     };
@@ -131,6 +133,48 @@ const ResidentialProsumerFlow: React.FC<Props> = ({ onBack }) => {
     setFormData(prev => ({ ...prev, [list]: prev[list].filter((item: any) => item.id !== id) }));
   };
 
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById('results-content');
+    if (!element) return;
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save('resultados-prosumidor-residencial.pdf');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Hubo un error al generar el PDF. Por favor intente nuevamente.');
+    }
+  };
+
   const inputClass = "w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white";
   const labelClass = "block text-sm font-bold text-slate-700 mb-1 uppercase tracking-tight";
   const sectionClass = "bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6";
@@ -142,24 +186,34 @@ const ResidentialProsumerFlow: React.FC<Props> = ({ onBack }) => {
     const pRec = (results.ahorroReconocimientos / savingsTotal) * 100;
 
     return (
-      <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto">
+      <div id="results-content" className="space-y-8 animate-fadeIn max-w-4xl mx-auto">
         <div className="flex items-center justify-between">
           <button onClick={() => setShowResults(false)} className="text-slate-500 hover:text-slate-800 flex items-center font-bold">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             Editar Datos
           </button>
-          <h2 className="text-2xl font-black text-slate-800">RESULTADOS</h2>
+          <div className="flex items-center gap-4">
+            <button onClick={handleDownloadPDF} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Guardar PDF
+            </button>
+            <h2 className="text-2xl font-black text-slate-800">RESULTADOS</h2>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-            <p className="text-slate-500 text-xs font-bold uppercase">Factura Sin Programa</p>
+            <p className="text-slate-500 text-xs font-bold uppercase">Factura sin Programa Prosumidores</p>
             <p className="text-2xl font-bold text-slate-600">{formatCurrency(results.totalAPagarSin)}</p>
           </div>
-          <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-200 shadow-sm">
-            <p className="text-emerald-700 text-xs font-bold uppercase tracking-widest">Ahorro Mensual Estimado</p>
-            <p className="text-3xl font-black text-emerald-600">{formatCurrency(results.ahorroTotal)}</p>
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <p className="text-slate-500 text-xs font-bold uppercase">Factura como Prosumidor</p>
+            <p className="text-2xl font-bold text-slate-600">{formatCurrency(results.totalToPay)}</p>
           </div>
+        </div>
+        <div className="bg-gradient-to-r from-[#FF5F6D] to-[#B83AF3] p-6 rounded-3xl shadow-xl mt-6 text-white text-center">
+            <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Ahorro mensual estimado</p>
+            <p className="text-3xl font-black text-white">{formatCurrency(results.ahorroTotal)}</p>
         </div>
 
         <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
@@ -205,15 +259,15 @@ const ResidentialProsumerFlow: React.FC<Props> = ({ onBack }) => {
             <h4 className="text-sm font-black text-slate-400 uppercase mb-4 tracking-widest">Eficiencia Energética</h4>
             <div className="space-y-4">
               <div>
-                <p className="text-xs font-bold text-slate-500 flex justify-between">Auto. / Generada <span>{Math.round(results.eficienciaAuto)}%</span></p>
+                <p className="text-xs font-bold text-slate-500 flex justify-between">Porcentaje de autoconsumo <span>{Math.round(results.eficienciaAuto)}%</span></p>
                 <div className="w-full bg-slate-100 h-2 rounded-full mt-1 overflow-hidden">
                   <div className="bg-blue-500 h-full" style={{width: `${Math.min(100, results.eficienciaAuto)}%`}}></div>
                 </div>
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-500 flex justify-between">Iny. / Generada <span>{Math.round(results.eficienciaIny)}%</span></p>
+                <p className="text-xs font-bold text-slate-500 flex justify-between">Porcentaje de generación con respecto al consumo <span>{Math.round(results.eficienciaGenConsumo)}%</span></p>
                 <div className="w-full bg-slate-100 h-2 rounded-full mt-1 overflow-hidden">
-                  <div className="bg-emerald-500 h-full" style={{width: `${Math.min(100, results.eficienciaIny)}%`}}></div>
+                  <div className="bg-emerald-500 h-full" style={{width: `${Math.min(100, results.eficienciaGenConsumo)}%`}}></div>
                 </div>
               </div>
             </div>
@@ -225,27 +279,18 @@ const ResidentialProsumerFlow: React.FC<Props> = ({ onBack }) => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
               Energía 100% Limpia
             </div>
+            <div className="mt-4">
+                <p className="text-slate-500 text-[10px] font-black uppercase mb-1">CO₂ evitado en el presente mes</p>
+                <p className="text-xl font-bold text-emerald-400">{formatNumber(results.X * 0.2306)} <span className="text-xs text-slate-400 font-normal">kg</span></p>
+            </div>
+            <div className="mt-4">
+                <p className="text-slate-500 text-[10px] font-black uppercase mb-1">Árboles equivalentes</p>
+                <p className="text-xl font-bold text-blue-400">{Math.ceil((results.X * 0.2306) / (10/12))} <span className="text-xs text-slate-400 font-normal">unidades</span></p>
+            </div>
           </div>
         </div>
 
-        {/* Accordion AUXILIARY */}
-        <div className="border border-slate-200 rounded-3xl overflow-hidden bg-white shadow-sm">
-          <button onClick={() => setShowAux(!showAux)} className="w-full p-6 flex items-center justify-between font-black text-slate-700 hover:bg-slate-50 transition-colors">
-            <span>CÁLCULOS AUXILIARES</span>
-            <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-transform ${showAux ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-          </button>
-          {showAux && (
-            <div className="p-8 border-t bg-slate-50 space-y-4 text-sm font-medium text-slate-600">
-              <div className="flex justify-between border-b pb-2"><span>Autoconsumo Coop,Con:</span> <span className="font-bold text-slate-800">{formatNumber(results.autoconsumo)} kWh</span></div>
-              <div className="flex justify-between border-b pb-2"><span>kWh de última banda Coop,Con:</span> <span className="font-bold text-slate-800">{formatNumber(results.kwhUltimaBandaCon)} kWh</span></div>
-              <div className="flex justify-between border-b pb-2"><span>Proporción Impuestos / Total, Coop Con:</span> <span className="font-bold text-slate-800">{results.propImpCon.toFixed(4)}</span></div>
-              <div className="flex justify-between border-b pb-2"><span>kWh de última banda Coop, Sin:</span> <span className="font-bold text-slate-800">{formatNumber(results.kwhUltimaBandaSin)} kWh</span></div>
-              <div className="flex justify-between border-b pb-2"><span>Subtotal Energía Eléctrica Coop, Sin:</span> <span className="font-bold text-slate-800">{formatCurrency(results.subtotalEnergySin)}</span></div>
-              <div className="flex justify-between border-b pb-2"><span>TOTAL A PAGAR, Coop,Sin:</span> <span className="font-bold text-slate-800">{formatCurrency(results.totalAPagarSin)}</span></div>
-              <div className="flex justify-between pt-2"><span>Ahorro total por contar con el programa:</span> <span className="font-bold text-emerald-600">{formatCurrency(results.ahorroTotal)}</span></div>
-            </div>
-          )}
-        </div>
+
       </div>
     );
   }
@@ -286,7 +331,7 @@ const ResidentialProsumerFlow: React.FC<Props> = ({ onBack }) => {
         </div>
 
         <div className="pt-4 border-t">
-          <label className={labelClass}>Reconocimiento beneficio ambiental ($)</label>
+          <label className={labelClass}>Reconocimiento beneficio ambiental / Reconocimiento Gobierno de Santa Fe ($)</label>
           <input type="number" step="any" className={inputClass} value={formData.environmentalBenefit} onChange={(e) => handleInputChange('environmentalBenefit', e.target.value)} placeholder="Importe en ARS" />
         </div>
 
@@ -305,6 +350,9 @@ const ResidentialProsumerFlow: React.FC<Props> = ({ onBack }) => {
             </div>
           ))}
           <button onClick={() => addItem('energyBands')} className="text-blue-600 font-bold text-sm">+ Agregar Banda</button>
+          <p className="text-[10px] text-slate-400 italic leading-relaxed border-l-4 border-blue-200 pl-4 py-1">
+            Si tu factura muestra un rango de valores en la Banda de energía, ingresá el valor máximo del rango. Si aparece un único número, ingresá ese mismo valor.
+          </p>
         </div>
 
         <div className="pt-6 border-t grid grid-cols-1 md:grid-cols-2 gap-6">

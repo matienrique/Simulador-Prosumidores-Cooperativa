@@ -69,7 +69,7 @@ export const calculateResults = (data: FormData): CalculationResults => {
   const eficienciaInyeccion = energyGenerated > 0 ? (energyInjected / energyGenerated) * 100 : 0;
 
   // Impacto Ambiental
-  const co2Evitado = energyGenerated * CO2_FACTOR;
+  const co2Evitado = energyGenerated * 0.2306;
   const arbolesEquivalentes = co2Evitado / TREE_CO2_ABSORPTION;
 
   return {

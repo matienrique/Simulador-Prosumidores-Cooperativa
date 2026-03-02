@@ -1,6 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { formatCurrency, formatNumber } from '../services/calculatorService';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface Props {
   onBack: () => void;
@@ -132,7 +134,7 @@ const LargeDemandProsumerFlow: React.FC<Props> = ({ onBack }) => {
 
     // 9. Impacto Ambiental
     const energiaGeneradaTotal = parse(formData.generadaPico) + parse(formData.generadaResto) + parse(formData.generadaValle);
-    const co2Evitado = energiaGeneradaTotal * 0.041;
+    const co2Evitado = energiaGeneradaTotal * 0.2306;
     const arboles = safeDiv(co2Evitado, (10/12));
 
     return {
@@ -153,6 +155,48 @@ const LargeDemandProsumerFlow: React.FC<Props> = ({ onBack }) => {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById('results-content');
+    if (!element) return;
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save('resultados-prosumidor-gran-demanda.pdf');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Hubo un error al generar el PDF. Por favor intente nuevamente.');
+    }
+  };
+
   const inputClass = "w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-600 outline-none transition-all bg-white shadow-sm";
   const labelClass = "block text-sm font-bold text-slate-700 mb-1 uppercase tracking-tight";
   const sectionClass = "bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn";
@@ -165,24 +209,34 @@ const LargeDemandProsumerFlow: React.FC<Props> = ({ onBack }) => {
     const pRec = (results.ahorroReconocimientos / savingsTotal) * 100;
 
     return (
-      <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto pb-20">
+      <div id="results-content" className="space-y-8 animate-fadeIn max-w-4xl mx-auto pb-20">
         <div className="flex items-center justify-between">
           <button onClick={() => setShowResults(false)} className="text-slate-500 hover:text-slate-800 flex items-center font-bold">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             Editar Datos
           </button>
-          <h2 className="text-2xl font-black text-slate-800 uppercase italic">Resultados Gran Demanda</h2>
+          <div className="flex items-center gap-4">
+            <button onClick={handleDownloadPDF} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Guardar PDF
+            </button>
+            <h2 className="text-2xl font-black text-slate-800 uppercase italic">Resultados Gran Demanda</h2>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center">
-            <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Factura Sin Prosumidores 4.0</p>
+            <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Factura sin Programa Prosumidores</p>
             <p className="text-3xl font-bold text-slate-800">{formatCurrency(results.totalFacturaSinPros)}</p>
           </div>
-          <div className="bg-purple-600 p-6 rounded-3xl border border-purple-700 shadow-xl text-center text-white">
-            <p className="text-purple-100 text-[10px] font-black uppercase mb-1">Factura Con Prosumidores 4.0</p>
-            <p className="text-3xl font-bold">{formatCurrency(parse(formData.totalAPagar))}</p>
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center">
+            <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Factura como Prosumidor</p>
+            <p className="text-3xl font-bold text-slate-800">{formatCurrency(parse(formData.totalAPagar))}</p>
           </div>
+        </div>
+        <div className="bg-gradient-to-r from-[#FF5F6D] to-[#B83AF3] p-6 rounded-3xl shadow-xl text-center text-white mt-6">
+            <p className="text-purple-100 text-[10px] font-black uppercase mb-1">Ahorro mensual estimado</p>
+            <p className="text-3xl font-bold">{formatCurrency(results.ahorroTotal)}</p>
         </div>
 
         <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center">
@@ -225,29 +279,12 @@ const LargeDemandProsumerFlow: React.FC<Props> = ({ onBack }) => {
           <h3 className="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] mb-4 italic">Impacto Ambiental Positivo</h3>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div><p className="text-slate-500 text-[8px] font-black uppercase mb-1">Generada Total</p><p className="text-xl font-bold">{results.energiaGeneradaTotal.toFixed(2)} <span className="text-[10px] font-normal text-slate-400">kWh</span></p></div>
-            <div><p className="text-slate-500 text-[8px] font-black uppercase mb-1">CO2 Evitado</p><p className="text-xl font-bold text-purple-400">{(results.co2Evitado).toFixed(2)} <span className="text-[10px] font-normal text-slate-400">kg</span></p></div>
-            <div><p className="text-slate-500 text-[8px] font-black uppercase mb-1">Árboles eq.</p><p className="text-xl font-bold text-emerald-400">{Math.ceil(results.arboles)}</p></div>
+            <div><p className="text-slate-500 text-[8px] font-black uppercase mb-1">CO₂ evitado en el presente mes</p><p className="text-xl font-bold text-purple-400">{(results.co2Evitado).toFixed(2)} <span className="text-[10px] font-normal text-slate-400">kg</span></p></div>
+            <div><p className="text-slate-500 text-[8px] font-black uppercase mb-1">Árboles equivalentes</p><p className="text-xl font-bold text-emerald-400">{Math.ceil(results.arboles)}</p></div>
           </div>
         </div>
 
-        <div className="border border-slate-200 rounded-3xl overflow-hidden bg-white shadow-sm">
-          <button onClick={() => setShowAux(!showAux)} className="w-full p-6 flex items-center justify-between font-black text-slate-700 hover:bg-slate-50 uppercase tracking-widest text-xs italic">
-            <span>MOSTRAR DETALLE DE CÁLCULOS</span>
-            <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-transform ${showAux ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-          </button>
-          {showAux && (
-            <div className="p-8 border-t bg-slate-50 space-y-4 text-[11px] font-mono text-slate-600 text-left">
-              <p>Consumo Pico: {results.consumoPico.toFixed(2)} kWh</p>
-              <p>Consumo Resto: {results.consumoResto.toFixed(2)} kWh</p>
-              <p>Consumo Valle: {results.consumoValle.toFixed(2)} kWh</p>
-              <p>Precio Unitario Resto: {results.precioUnitarioResto.toFixed(4)} $/kWh</p>
-              <p>Tarifa Resto SIN Pros: {formatCurrency(results.tarifaRestoSinPros)}</p>
-              <p>Subtotal Básico SIN Pros: {formatCurrency(results.subtotalBasicoSinPros)}</p>
-              <p>Impuestos SIN Pros: {formatCurrency(results.impuestosSinPros)}</p>
-              <p>Total Factura SIN Pros: {formatCurrency(results.totalFacturaSinPros)}</p>
-            </div>
-          )}
-        </div>
+
       </div>
     );
   }
@@ -259,7 +296,7 @@ const LargeDemandProsumerFlow: React.FC<Props> = ({ onBack }) => {
         Volver
       </button>
 
-      <div className="bg-purple-600 p-6 rounded-3xl text-white flex items-center justify-between shadow-xl">
+      <div className="bg-gradient-to-r from-[#FF5F6D] to-[#B83AF3] p-6 rounded-3xl text-white flex items-center justify-between shadow-xl">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>

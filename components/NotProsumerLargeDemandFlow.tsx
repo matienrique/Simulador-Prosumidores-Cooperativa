@@ -1,6 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { formatCurrency, formatNumber } from '../services/calculatorService';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface Props {
   onBack: () => void;
@@ -131,7 +133,7 @@ const NotProsumerLargeDemandFlow: React.FC<Props> = ({ onBack }) => {
     const ahorroReconocimientos = reconCoop + reconGSF;
 
     // 6. IMPACTO AMBIENTAL
-    const co2Evitado = energiaGenerada * 0.041;
+    const co2Evitado = energiaGenerada * 0.2306;
     const arboles = co2Evitado / (10/12);
 
     return {
@@ -163,6 +165,48 @@ const NotProsumerLargeDemandFlow: React.FC<Props> = ({ onBack }) => {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById('results-content');
+    if (!element) return;
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save('resultados-gran-demanda.pdf');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Hubo un error al generar el PDF. Por favor intente nuevamente.');
+    }
+  };
+
   const inputClass = "w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-600 outline-none transition-all bg-white shadow-sm";
   const labelClass = "block text-sm font-bold text-slate-700 mb-1 uppercase tracking-tight";
   const sectionClass = "bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn";
@@ -175,13 +219,24 @@ const NotProsumerLargeDemandFlow: React.FC<Props> = ({ onBack }) => {
     const pRec = Math.max(0, (results.ahorroReconocimientos / savingsTotal) * 100);
 
     return (
-      <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto pb-20">
+      <div id="results-content" className="space-y-8 animate-fadeIn max-w-4xl mx-auto pb-20">
         <div className="flex items-center justify-between">
           <button onClick={() => setShowResults(false)} className="text-slate-500 hover:text-slate-800 flex items-center font-bold">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             Editar Datos
           </button>
-          <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">Resultados Gran Demanda</h2>
+          <div className="flex items-center gap-4">
+            <button onClick={handleDownloadPDF} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Guardar PDF
+            </button>
+            <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">Resultados Gran Demanda</h2>
+          </div>
+        </div>
+
+        <div className="text-center bg-purple-50 p-4 rounded-2xl border border-purple-100">
+          <p className="text-xs font-black text-purple-800 uppercase tracking-widest">Potencia maxima de instalacion</p>
+          <p className="text-2xl font-black text-purple-600">{Number(formData.pvPower).toFixed(2)} kW</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -189,7 +244,7 @@ const NotProsumerLargeDemandFlow: React.FC<Props> = ({ onBack }) => {
             <p className="text-slate-400 text-[10px] font-black uppercase mb-1 tracking-widest">Factura Sin Programa</p>
             <p className="text-3xl font-bold text-slate-800">{formatCurrency(parse(formData.totalInput))}</p>
           </div>
-          <div className="bg-purple-600 p-6 rounded-3xl border border-purple-700 shadow-xl text-center text-white">
+          <div className="bg-gradient-to-r from-[#FF5F6D] to-[#B83AF3] p-6 rounded-3xl shadow-xl text-center text-white">
             <p className="text-purple-100 text-[10px] font-black uppercase mb-1 tracking-widest">Factura Con Prosumidores 4.0</p>
             <p className="text-3xl font-bold">{formatCurrency(results.totalCon)}</p>
           </div>
@@ -231,40 +286,36 @@ const NotProsumerLargeDemandFlow: React.FC<Props> = ({ onBack }) => {
           </div>
         </div>
 
-        <div className="bg-slate-900 p-8 rounded-3xl text-white shadow-xl flex flex-col justify-center">
-          <h3 className="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] mb-4 italic">Impacto Ambiental Positivo</h3>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div>
-              <p className="text-slate-500 text-[8px] font-black uppercase mb-1">CO2 Evitado (Mes)</p>
-              <p className="text-xl font-bold text-purple-400">{(results.co2Evitado).toFixed(2)} <span className="text-[10px] font-normal text-slate-400">kg</span></p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 italic">Eficiencia Energética</h3>
+            <div className="space-y-4">
+              <div>
+                <p className="flex justify-between text-[10px] font-bold mb-1 uppercase"><span>Porcentaje de autoconsumo</span> <span>{Math.round(safeDiv(results.energiaGenerada - results.energiaRecibida, results.energiaGenerada) * 100)}%</span></p>
+                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div className="bg-purple-600 h-full" style={{width: `${safeDiv(results.energiaGenerada - results.energiaRecibida, results.energiaGenerada) * 100}%`}}></div></div>
+              </div>
+              <div>
+                <p className="flex justify-between text-[10px] font-bold mb-1 uppercase"><span>Porcentaje de generación con respecto al consumo</span> <span>{Math.round(safeDiv(results.energiaGenerada, (parse(formData.consPico) + parse(formData.consResto) + parse(formData.consValle))) * 100)}%</span></p>
+                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div className="bg-blue-500 h-full" style={{width: `${safeDiv(results.energiaGenerada, (parse(formData.consPico) + parse(formData.consResto) + parse(formData.consValle))) * 100}%`}}></div></div>
+              </div>
             </div>
-            <div>
-              <p className="text-slate-500 text-[8px] font-black uppercase mb-1">Árboles eq.</p>
-              <p className="text-xl font-bold text-emerald-400">{Math.ceil(results.arboles)}</p>
+          </div>
+          <div className="bg-slate-900 p-8 rounded-3xl text-white shadow-xl flex flex-col justify-center">
+            <h3 className="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] mb-4 italic">Impacto Ambiental Positivo</h3>
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div>
+                <p className="text-slate-500 text-[8px] font-black uppercase mb-1">CO2 Evitado (Mes)</p>
+                <p className="text-xl font-bold text-purple-400">{(results.co2Evitado).toFixed(2)} <span className="text-[10px] font-normal text-slate-400">kg</span></p>
+              </div>
+              <div>
+                <p className="text-slate-500 text-[8px] font-black uppercase mb-1">Árboles eq.</p>
+                <p className="text-xl font-bold text-emerald-400">{Math.ceil(results.arboles)}</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="border border-slate-200 rounded-3xl overflow-hidden bg-white shadow-sm">
-          <button onClick={() => setShowAux(!showAux)} className="w-full p-6 flex items-center justify-between font-black text-slate-700 hover:bg-slate-50 uppercase tracking-widest text-xs italic">
-            <span>MOSTRAR TODOS LOS CÁLCULOS (VARIABLES INTERNAS)</span>
-            <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-transform ${showAux ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-          </button>
-          {showAux && (
-            <div className="p-8 border-t bg-slate-50 space-y-4 text-[11px] font-mono text-slate-600 leading-relaxed text-left">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
-                <div className="flex justify-between border-b pb-1"><span>Energía Generada:</span> <span className="font-bold text-slate-900">{results.energiaGenerada.toFixed(2)} kWh</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Energía Recibida:</span> <span className="font-bold text-slate-900">{results.energiaRecibida.toFixed(2)} kWh</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Subtotal Básico SIN:</span> <span className="font-bold text-slate-900">{formatCurrency(results.subtotalBasicoSin)}</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Tarifa Resto CON:</span> <span className="font-bold text-slate-900">{formatCurrency(results.tarifaRestoCon)}</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Recon. Coop:</span> <span className="font-bold text-slate-900">{formatCurrency(results.reconCoop)}</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Recon. GSF:</span> <span className="font-bold text-slate-900">{formatCurrency(results.reconGSF)}</span></div>
-                <div className="flex justify-between border-b pb-1"><span>Subtotal General CON:</span> <span className="font-bold text-slate-900">{formatCurrency(results.subtotalGeneralCon)}</span></div>
-                <div className="flex justify-between border-b pb-1 bg-purple-50 p-1 rounded"><span>TOTAL CON PROGRAMA:</span> <span className="font-bold text-purple-700">{formatCurrency(results.totalCon)}</span></div>
-              </div>
-            </div>
-          )}
-        </div>
+
       </div>
     );
   }
@@ -276,7 +327,7 @@ const NotProsumerLargeDemandFlow: React.FC<Props> = ({ onBack }) => {
         Volver
       </button>
 
-      <div className="bg-purple-600 p-6 rounded-3xl text-white shadow-xl">
+      <div className="bg-gradient-to-r from-[#FF5F6D] to-[#B83AF3] p-6 rounded-3xl text-white shadow-xl">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>

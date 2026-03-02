@@ -36,7 +36,7 @@ const ProsumerScreen: React.FC<Props> = ({ onSelect, onBack }) => {
             </svg>
           </div>
           <span className="text-2xl font-bold text-slate-800">Soy Prosumidor</span>
-          <p className="text-sm text-slate-400 text-center mt-3">Ya inyecto energía a la red o estoy en proceso de habilitación.</p>
+          <p className="text-sm text-slate-400 text-center mt-3">Genero energía renovable en el marco del Programa Prosumidores 4.0.</p>
         </button>
 
         <button
@@ -49,7 +49,7 @@ const ProsumerScreen: React.FC<Props> = ({ onSelect, onBack }) => {
             </svg>
           </div>
           <span className="text-2xl font-bold text-slate-800">No Soy Prosumidor</span>
-          <p className="text-sm text-slate-400 text-center mt-3">Deseo simular el impacto económico de instalar paneles solares.</p>
+          <p className="text-sm text-slate-400 text-center mt-3">Deseo conocer que potencia renovable puedo instalar y cuáles serían mis ahorros.</p>
         </button>
       </div>
     </div>
