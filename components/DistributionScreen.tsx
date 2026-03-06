@@ -14,6 +14,16 @@ const DistributionScreen: React.FC<Props> = ({ onSelect }) => {
         <p className="text-slate-500 text-lg max-w-xl">
           Mediante el siguiente simulador podrás estimar los ahorros económicos en tu factura eléctrica o calcular qué potencia de energía renovable podés instalar por formar parte del Programa Prosumidores 4.0
         </p>
+        <p className="text-slate-400 text-sm">
+          <a 
+            href="https://docs.google.com/document/d/1j169YY3rtR4osTqPNUCRyxFYro9--mpeBuYOc8-TtzQ/edit?tab=t.0" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline font-medium"
+          >
+            Podés consultar el manual de usuario cliqueando aquí
+          </a>
+        </p>
       </div>
 
       <div className="w-full max-w-md">
