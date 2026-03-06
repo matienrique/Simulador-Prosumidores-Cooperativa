@@ -76,13 +76,13 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="bg-gradient-to-r from-[#FF5F6D] to-[#B83AF3] text-white py-6 px-4 shadow-md">
         <div className="max-w-4xl mx-auto flex flex-col items-center">
-          <h1 className="text-xl md:text-2xl font-bold text-center flex items-center justify-center gap-4">
+          <h1 className="text-xl md:text-2xl font-bold text-center flex items-center justify-center gap-10">
             <img src={logoProsumidores} alt="Prosumidores" className="h-8 md:h-12 w-auto" />
-            <span>Programa Prosumidores 4.0</span>
+            <span>Calculadora Prosumidores</span>
             <img src={logoMinprod} alt="Gobierno de Santa Fe" className="h-12 md:h-16 w-auto" />
           </h1>
           <p className="text-slate-300 text-sm mt-1 uppercase tracking-wider font-semibold">
-            Gestión de Ahorro Energético
+            
           </p>
         </div>
       </header>
@@ -102,13 +102,16 @@ const App: React.FC = () => {
               
               <div className="space-y-4 text-slate-700 leading-relaxed text-sm md:text-base">
                 <p>
-                  Este Simulador de Facturas para Prosumidores es una herramienta pensada para ayudarte a visualizar los ahorros obtenidos por medio de tu sistema de generación renovable conectado a la red. Los resultados deben interpretarse como una estimación orientativa, útil para visualizar posibles ahorros y beneficios, pero no como una factura definitiva.
+                  Este Simulador de Facturas es una herramienta pensada para ayudarte a visualizar los ahorros obtenidos por medio de tu sistema de generación renovable conectado a la red eléctrica. Los resultados deben interpretarse como una estimación orientativa, útil para visualizar de manera simple y rápida los beneficios económicos y ambientales, en caso de que ya sea un Prosumidor o estés interesado en adherir a Prosumidores 4.0.  
+
                 </p>
                 <p>
-                  Los montos calculados pueden presentar variaciones respecto de la facturación efectiva, debido a posibles actualizaciones tarifarias, modificaciones en los esquemas de incentivos, variaciones en impuestos y cargos aplicables, en relación al período de facturación simulado.
+                  Los importes calculados pueden presentar variaciones debido a posibles actualizaciones tarifarias y modificaciones en los esquemas de incentivos en relación al período de facturación simulado.
+
                 </p>
                 <p className="font-medium">
                   La información proporcionada por el simulador tiene carácter informativo y no reviste condición de liquidación oficial ni genera derecho adquirido alguno, debiendo considerarse como una herramienta de apoyo para la toma de decisiones.
+
                 </p>
               </div>
 
@@ -203,7 +206,7 @@ const App: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <p className="font-black text-white uppercase text-xs tracking-[0.2em] mb-2 italic">Contacto</p>
+                <p className="font-black text-white uppercase text-xs tracking-[0.2em] mb-2 italic">Secretaría de Energía</p>
                 <p className="text-sm leading-relaxed text-white/90">Francisco Miguens 260. Torre 2. Piso 4.</p>
                 <p className="text-sm leading-relaxed text-white/90">Ciudad de Santa Fe</p>
               </div>
@@ -223,7 +226,7 @@ const App: React.FC = () => {
                 <span className="text-sm font-medium text-white/90">secretariadeenergiasantafe@gmail.com</span>
                 <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
               </div>

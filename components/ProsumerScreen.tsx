@@ -21,8 +21,8 @@ const ProsumerScreen: React.FC<Props> = ({ onSelect, onBack }) => {
       </button>
 
       <div className="text-center space-y-4">
-        <h2 className="text-4xl font-extrabold text-slate-800 tracking-tight">Estado de Prosumidor</h2>
-        <p className="text-slate-500 text-lg">¿Ya cuenta con equipamiento de generación renovable?</p>
+        <h2 className="text-4xl font-extrabold text-slate-800 tracking-tight">Seleccione la opción correspondiente a su situación</h2>
+        <p className="text-slate-500 text-lg"></p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
