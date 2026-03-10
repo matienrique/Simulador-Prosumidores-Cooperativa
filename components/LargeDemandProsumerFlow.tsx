@@ -285,8 +285,8 @@ const LargeDemandProsumerFlow: React.FC<Props> = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Sección de Cálculos Detallados */}
-        <div className="mt-12 border-t border-slate-200 pt-8">
+        {/* Sección de Cálculos Detallados - Hidden as requested */}
+        <div className="mt-12 border-t border-slate-200 pt-8 hidden">
           <button 
             onClick={() => setShowAux(!showAux)} 
             className="flex items-center text-slate-400 hover:text-slate-600 font-black uppercase text-[10px] tracking-[0.2em] transition-all mb-4"

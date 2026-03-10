@@ -67,7 +67,7 @@ const NotProsumerResidentialFlow: React.FC<Props> = ({ onBack }) => {
   // Lógica Fiscal
   const fiscalData = useMemo(() => {
     switch (formData.fiscalStatus) {
-      case FiscalStatus.RI: return { iva: 0.27, perc: 0, label: "IVA: 27% | Percepción: 0%" };
+      case FiscalStatus.RI: return { iva: 0.27, perc: 0.03, label: "IVA: 27% | Percepción: 3%" };
       case FiscalStatus.CF: return { iva: 0.21, perc: 0, label: "IVA: 21% | Percepción: 0%" };
       case FiscalStatus.MONO: return { iva: 0.27, perc: 0, label: "IVA: 27% | Percepción: 0%" };
       case FiscalStatus.NC: return { iva: 0.27, perc: 0.135, label: "IVA: 27% | Percepción: 13,5%" };
@@ -338,8 +338,8 @@ const NotProsumerResidentialFlow: React.FC<Props> = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Sección de Cálculos Detallados */}
-        <div className="mt-12 border-t border-slate-200 pt-8">
+        {/* Sección de Cálculos Detallados - Hidden as requested */}
+        <div className="mt-12 border-t border-slate-200 pt-8 hidden">
           <button 
             onClick={() => setShowAux(!showAux)} 
             className="flex items-center text-slate-400 hover:text-slate-600 font-black uppercase text-[10px] tracking-[0.2em] transition-all mb-4"
