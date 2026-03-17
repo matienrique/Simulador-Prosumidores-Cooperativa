@@ -349,7 +349,7 @@ const ResidentialProsumerFlow: React.FC<Props> = ({ onBack }) => {
       </button>
 
       <div className="text-center">
-        <h2 className="text-3xl font-black text-slate-800">CALCULADORA RESIDENCIAL</h2>
+        <h2 className="text-3xl font-black text-slate-800">SIMULADOR RESIDENCIAL</h2>
         <p className="text-slate-500 mt-2 font-medium italic">Parámetros específicos para Cooperativas Eléctricas</p>
       </div>
 

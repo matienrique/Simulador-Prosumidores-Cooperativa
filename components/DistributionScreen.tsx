@@ -45,7 +45,7 @@ const DistributionScreen: React.FC<Props> = ({ onSelect }) => {
           
           <span className="text-2xl font-bold text-slate-800">Soy usuario de</span>
           <span className="text-2xl font-black text-blue-600">Cooperativa Eléctrica</span>
-          <p className="text-sm text-slate-400 text-center mt-4">Acceda a la calculadora específica para sistemas cooperativos.</p>
+          <p className="text-sm text-slate-400 text-center mt-4">Acceda al simulador específico para sistemas cooperativos.</p>
         </button>
       </div>
     </div>

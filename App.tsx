@@ -78,7 +78,7 @@ const App: React.FC = () => {
         <div className="max-w-4xl mx-auto flex flex-col items-center">
           <h1 className="text-xl md:text-2xl font-bold text-center flex items-center justify-center gap-10">
             <img src={logoProsumidores} alt="Prosumidores" className="h-8 md:h-12 w-auto" />
-            <span>Calculadora Prosumidores</span>
+            <span>Simulador Prosumidores</span>
             <img src={logoMinprod} alt="Gobierno de Santa Fe" className="h-12 md:h-16 w-auto" />
           </h1>
           <p className="text-slate-300 text-sm mt-1 uppercase tracking-wider font-semibold">

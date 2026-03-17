@@ -40,7 +40,7 @@ const NotProsumerCommercialFlow: React.FC<Props> = ({ onBack }) => {
 
   // VARIABLES ESPECÍFICAS PARA USUARIO COMERCIAL
   const Autoconsumo_estimado = 0.75;
-  const TARIFA_GSF = 39.2;
+  const TARIFA_GSF = 40.51;
 
   const [formData, setFormData] = useState<LocalFormData>({
     knowsPower: 'no',

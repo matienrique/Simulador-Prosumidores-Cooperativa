@@ -39,7 +39,7 @@ const NotProsumerResidentialFlow: React.FC<Props> = ({ onBack }) => {
 
   // Variables internas obligatorias
   const Autoconsumo_estimado = 0.40;
-  const TARIFA_GSF = 23.49;
+  const TARIFA_GSF = 24.27;
 
   const [formData, setFormData] = useState<LocalFormData>({
     knowsPower: 'no',

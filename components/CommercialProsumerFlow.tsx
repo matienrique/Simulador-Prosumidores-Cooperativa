@@ -329,7 +329,7 @@ const CommercialProsumerFlow: React.FC<Props> = ({ onBack }) => {
       </button>
 
       <div className="text-center">
-        <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase">Calculadora Comercial</h2>
+        <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase">Simulador Comercial</h2>
         <p className="text-emerald-600 font-bold text-sm">Cooperativa Eléctrica • Programa Prosumidores 4.0</p>
       </div>
 
